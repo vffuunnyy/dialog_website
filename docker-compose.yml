@@ -1,0 +1,60 @@
+version: "3.8"
+
+services:
+    dialog_backend:
+        container_name: dialog_backend
+        build: .
+        restart: "always"
+        env_file: .env
+        stop_signal: SIGINT
+
+        environment:
+            PYTHONUNBUFFERED: 1
+
+        ports:
+            - "40203:40203"
+
+        networks:
+            - dialog_network
+
+    nginx:
+        container_name: nginx
+        image: nginx:latest
+
+        restart: "always"
+        stop_signal: SIGINT
+
+        ports:
+            - "80:80"
+        volumes:
+            - ./nginx/conf.d/:/etc/nginx/conf.d/
+            - ./web:/etc/nginx/html
+
+        command: '/bin/sh -c ''while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g "daemon off;"'''
+
+        networks:
+            - dialog_network
+
+    mongodb:
+        container_name: mongodb
+        image: mongo:4.4.24
+
+        restart: "always"
+        stop_signal: SIGINT
+
+        environment:
+            - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME}
+            - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
+
+        ports:
+            - "27017:27017"
+
+        volumes:
+            - ./mongodb:/data/db
+
+        networks:
+            - dialog_network
+
+networks:
+    dialog_network:
+        driver: bridge
